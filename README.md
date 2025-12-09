@@ -83,16 +83,14 @@ Il est possible que la commande `mysql` ne fonctionne pas. Ajoutez le chemin ver
     ```
     DB_HOST=localhost
     DB_USER=root
-    DB_PASSWORD=your_password
-    DB_NAME=your_database_name
-    DB_PORT=3306
+    DB_PASSWORD=example
+    DB_NAME=tasksdb
     ```
 
     - **DB_HOST** : L'adresse de votre serveur MariaDB (par défaut : `localhost`).
     - **DB_USER** : Votre nom d'utilisateur MariaDB (par défaut : `root`).
     - **DB_PASSWORD** : Votre mot de passe MariaDB.
     - **DB_NAME** : Le nom de la base de données créée avec le script `init.sql`.
-    - **DB_PORT** : Le port de votre serveur MariaDB (par défaut : `3306`).
 
 3. Sauvegardez le fichier.
 
