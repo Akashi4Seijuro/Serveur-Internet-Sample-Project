@@ -65,12 +65,16 @@ Il est possible que la commande `mysql` ne fonctionne pas. Ajoutez le chemin ver
     DB_USER=root
     DB_PASSWORD=example
     DB_NAME=tasksdb
+    PORT=3000
+    HOST=0.0.0.0
     ```
 
     - **DB_HOST** : L'adresse de votre serveur MariaDB (par défaut : `localhost`).
     - **DB_USER** : Votre nom d'utilisateur MariaDB (par défaut : `root`).
     - **DB_PASSWORD** : Votre mot de passe MariaDB.
     - **DB_NAME** : Le nom de la base de données créée avec le script `init.sql`.
+    - **PORT** : Le port d'écoute du backend (par défaut : `3000`).
+    - **HOST** : L'adresse d'écoute du serveur (par défaut : `0.0.0.0`).
 
 3. Sauvegardez le fichier.
 
@@ -94,6 +98,6 @@ Dans le dossier `frontend` :
 npm run dev
 ```
 
-Le frontend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:5173`).
+Le frontend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:8080`).
 
 ---
