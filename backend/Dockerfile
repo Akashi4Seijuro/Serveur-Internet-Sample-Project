@@ -13,11 +13,8 @@ COPY . .
 # Installing dependencies
 RUN npm install
 
-# Installing pm2 globally
-RUN npm install pm2 -g
+# Exposing server port
+EXPOSE 3000
 
 # Starting our application
-CMD pm2 start process.yml && tail -f /dev/null
-
-# Exposing server port
-EXPOSE 5000
+CMD [ "node", "server.js" ]
