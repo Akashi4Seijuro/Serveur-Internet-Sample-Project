@@ -1,0 +1,147 @@
+name: Deployement Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  Deploy-Docker-Infra:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on remote server
+        uses: appleboy/ssh-action@v1.2.0
+
+        env:
+          # ===== GLOBAL =====
+          TZ: ${{ secrets.TZ }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+          # ===== SSH =====
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          # ===== TRAEFIK =====
+          TRAEFIK_HOST: ${{ secrets.TRAEFIK_HOST }}
+          TRAEFIK_WEB_PORT: ${{ secrets.TRAEFIK_WEB_PORT }}
+          TRAEFIK_WEBSECURE_PORT: ${{ secrets.TRAEFIK_WEBSECURE_PORT }}
+          LETSENCRYPT_DIR: ${{ secrets.LETSENCRYPT_DIR }}
+
+          # ===== TINYAUTH =====
+          TINYAUTH_HOST: ${{ secrets.TINYAUTH_HOST }}
+          TINYAUTH_PORT: ${{ secrets.TINYAUTH_PORT }}
+          TINYAUTH_USERS: ${{ secrets.TINYAUTH_USERS }}
+          ENABLE_FORWARD_AUTH: ${{ secrets.ENABLE_FORWARD_AUTH }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OAUTH_WHITELISTE: ${{ secrets.OAUTH_WHITELISTE }}
+
+          # ===== TASKLIST =====
+          TASKLIST_HOST: ${{ secrets.TASKLIST_HOST }}
+          FRONTEND_PORT: ${{ secrets.FRONTEND_PORT }}
+          BACKEND_PORT: ${{ secrets.BACKEND_PORT }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          HOST: ${{ secrets.HOST }}
+
+          # ===== WIKI =====
+          WIKI_HOST: ${{ secrets.WIKI_HOST }}
+          OTTERWIKI_PORT: ${{ secrets.OTTERWIKI_PORT }}
+          OTTERWIKI_DATA_DIR: ${{ secrets.OTTERWIKI_DATA_DIR }}
+
+          # ===== MONITORING =====
+          UPTIME_HOST: ${{ secrets.UPTIME_HOST }}
+          UPTIME_KUMA_PORT: ${{ secrets.UPTIME_KUMA_PORT }}
+
+          # ===== FAIL2BAN =====
+          F2B_LOG_LEVEL: ${{ secrets.F2B_LOG_LEVEL }}
+          F2B_DB_PURGE_AGE: ${{ secrets.F2B_DB_PURGE_AGE }}
+          F2B_UI_HOST: ${{ secrets.F2B_UI_HOST }}
+          F2B_UI_PORT: ${{ secrets.F2B_UI_PORT }}
+
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          envs: |
+            TZ,GH_TOKEN,
+            TRAEFIK_HOST,TRAEFIK_WEB_PORT,TRAEFIK_WEBSECURE_PORT,LETSENCRYPT_DIR,
+            TINYAUTH_HOST,TINYAUTH_PORT,TINYAUTH_USERS,ENABLE_FORWARD_AUTH,
+            GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,OAUTH_WHITELISTE,
+            TASKLIST_HOST,FRONTEND_PORT,BACKEND_PORT,
+            DB_HOST,DB_NAME,DB_USER,DB_PASSWORD,DB_PORT,HOST,
+            WIKI_HOST,OTTERWIKI_PORT,OTTERWIKI_DATA_DIR,
+            UPTIME_HOST,UPTIME_KUMA_PORT,
+            F2B_LOG_LEVEL,F2B_DB_PURGE_AGE,F2B_UI_HOST,F2B_UI_PORT
+
+          script: |
+            set -e
+
+            echo "📥 Clonage du dépôt"
+            git clone https://$GH_TOKEN@github.com/Akashi4Seijuro/Serveur-Internet-Sample-Project.git
+            cd Serveur-Internet-Sample-Project
+
+            echo "📂 Copie vers /root/srv"
+            cp -r srv/* /root/srv/
+            cd ..
+            rm -rf Serveur-Internet-Sample-Project
+
+            # ===================== TRAEFIK =====================
+            cd /root/srv/traefik
+            cat <<EOF > .env
+            TZ=$TZ
+            TRAEFIK_WEB_PORT=$TRAEFIK_WEB_PORT
+            TRAEFIK_WEBSECURE_PORT=$TRAEFIK_WEBSECURE_PORT
+            LETSENCRYPT_DIR=$LETSENCRYPT_DIR
+            EOF
+            docker compose up -d --force-recreate
+
+            # ===================== TASKLIST =====================
+            cd /root/srv/tasklist
+            cat <<EOF > .env
+            TZ=$TZ
+            FRONTEND_PORT=$FRONTEND_PORT
+            BACKEND_PORT=$BACKEND_PORT
+            DB_HOST=$DB_HOST
+            DB_NAME=$DB_NAME
+            DB_USER=$DB_USER
+            DB_PASSWORD=$DB_PASSWORD
+            DB_PORT=$DB_PORT
+            HOST=$HOST
+            EOF
+            docker compose up -d --force-recreate
+
+            # ===================== WIKI =====================
+            cd /root/srv/wiki
+            cat <<EOF > .env
+            TZ=$TZ
+            OTTERWIKI_PORT=$OTTERWIKI_PORT
+            OTTERWIKI_DATA_DIR=$OTTERWIKI_DATA_DIR
+            EOF
+            docker compose up -d --force-recreate
+
+            # ===================== MONITORING =====================
+            cd /root/srv/monitoring
+            cat <<EOF > .env
+            TZ=$TZ
+            UPTIME_KUMA_PORT=$UPTIME_KUMA_PORT
+            EOF
+            docker compose up -d --force-recreate
+
+            # ===================== FAIL2BAN =====================
+            cd /root/srv/fail2ban
+            cat <<EOF > .env
+            TZ=$TZ
+            F2B_LOG_LEVEL=$F2B_LOG_LEVEL
+            F2B_DB_PURGE_AGE=$F2B_DB_PURGE_AGE
+            F2B_UI_PORT=$F2B_UI_PORT
+            EOF
+            docker compose up -d --force-recreate
+
+            echo "✅ Déploiement terminé avec succès"
