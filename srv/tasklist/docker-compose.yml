@@ -1,0 +1,77 @@
+version: "3.8"
+
+services:
+  frontend:
+    image: bertinabogo/frontend-app:latest
+    container_name: express-frontend
+
+    env_file:
+      - .env
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== Router frontend (protégé) =====
+      - "traefik.http.routers.tasklist-frontend.rule=Host(`${TASKLIST_HOST}`)"
+      - "traefik.http.routers.tasklist-frontend.entrypoints=websecure"
+      - "traefik.http.routers.tasklist-frontend.tls=true"
+      - "traefik.http.routers.tasklist-frontend.middlewares=tinyauth@docker"
+
+      # ===== Service frontend =====
+      - "traefik.http.services.tasklist-frontend.loadbalancer.server.port=${FRONTEND_PORT}"
+
+
+  backend:
+    image: bertinabogo/backend-app:latest
+    container_name: express-backend
+
+    env_file:
+      - .env
+
+    environment:
+      HOST: ${HOST}
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+    depends_on:
+      - database
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tasklist-backend.rule=Host(`${TASKLIST_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.tasklist-backend.entrypoints=websecure"
+      - "traefik.http.routers.tasklist-backend.tls=true"
+      - "traefik.http.services.tasklist-backend.loadbalancer.server.port=${BACKEND_PORT}"
+
+
+  database:
+    image: bertinabogo/mariadb-custom:latest
+    container_name: mariadb-container
+
+    env_file:
+      - .env
+
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+
+    volumes:
+      - ./db-data:/var/lib/mysql
+
+    networks:
+      - proxy
+
+
+networks:
+  proxy:
+    external: true

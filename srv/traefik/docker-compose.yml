@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.6
+    container_name: traefik
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/dynamic"
+
+      - "--entrypoints.web.address=:${TRAEFIK_WEB_PORT}"
+      - "--entrypoints.websecure.address=:${TRAEFIK_WEBSECURE_PORT}"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      - "--api=true"
+
+    ports:
+      - "${TRAEFIK_WEB_PORT}:80"
+      - "${TRAEFIK_WEBSECURE_PORT}:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/dynamic:ro
+      - ${LETSENCRYPT_DIR}:${LETSENCRYPT_DIR}:ro
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== Dashboard Traefik =====
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+      # Protection par TinyAuth
+      - "traefik.http.routers.traefik.middlewares=tinyauth@docker"
+
+
+  tinyauth:
+    image: ghcr.io/steveiliop56/tinyauth:v4
+    container_name: tinyauth
+    restart: unless-stopped
+
+    depends_on:
+      - traefik
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./data:/data
+
+    environment:
+      TZ: ${TZ}
+      APP_URL: ${APP_URL}
+      ENABLE_FORWARD_AUTH: "${ENABLE_FORWARD_AUTH}"
+      USERS: ${TINYAUTH_USERS}
+      PROVIDERS_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      PROVIDERS_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      OAUTH_WHITELISTE: ${OAUTH_WHITELISTE}
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== Accès TinyAuth (NON protégé) =====
+      - "traefik.http.routers.tinyauth.rule=Host(`${TINYAUTH_HOST}`)"
+      - "traefik.http.routers.tinyauth.entrypoints=websecure"
+      - "traefik.http.routers.tinyauth.tls=true"
+      - "traefik.http.services.tinyauth.loadbalancer.server.port=${TINYAUTH_PORT}"
+
+      # ===== Middleware forwardAuth =====
+      - "traefik.http.middlewares.tinyauth.forwardauth.address=http://tinyauth:${TINYAUTH_PORT}/api/auth/traefik"
+      - "traefik.http.middlewares.tinyauth.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.tinyauth.forwardauth.authResponseHeaders=X-Forwarded-User,X-Forwarded-Email"
+
+
+networks:
+  proxy:
+    external: true

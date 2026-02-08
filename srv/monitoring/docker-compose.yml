@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      TZ: ${TZ}
+
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== ROUTER PUBLIC (sans auth) =====
+      - >
+        traefik.http.routers.uptime-public.rule=
+        Host(`${UPTIME_HOST}`) &&
+        (PathPrefix(`/status`) ||
+         PathPrefix(`/assets`) ||
+         PathPrefix(`/api/status`) ||
+         Path(`/favicon.ico`))
+      - "traefik.http.routers.uptime-public.entrypoints=websecure"
+      - "traefik.http.routers.uptime-public.tls=true"
+      - "traefik.http.routers.uptime-public.service=uptime"
+
+      # ===== ROUTER PRIVÉ (avec TinyAuth) =====
+      - "traefik.http.routers.uptime-private.rule=Host(`${UPTIME_HOST}`)"
+      - "traefik.http.routers.uptime-private.entrypoints=websecure"
+      - "traefik.http.routers.uptime-private.tls=true"
+      - "traefik.http.routers.uptime-private.middlewares=tinyauth@docker"
+      - "traefik.http.routers.uptime-private.service=uptime"
+
+      # ===== SERVICE =====
+      - "traefik.http.services.uptime.loadbalancer.server.port=${UPTIME_KUMA_PORT}"
+
+networks:
+  proxy:
+    external: true

@@ -67,6 +67,11 @@ web_modules/
 
 # dotenv environment variable files
 .env
+srv/traefik/.env
+srv/tasklist/.env
+srv/wiki/.env
+srv/fail2ban/.env
+srv/monitoring/.env
 .env.*
 !.env.example
 
