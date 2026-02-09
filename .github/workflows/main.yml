@@ -92,15 +92,39 @@ jobs:
             cd ..
             rm -rf Serveur-Internet-Sample-Project
 
-            # ===================== TRAEFIK =====================
+            # ===================== TRAEFIK + TINYAUTH =====================
+            echo "⚙️ Configuration Traefik + TinyAuth"
             cd /root/srv/traefik
+
             cat <<EOF > .env
+            # ===== Timezone =====
             TZ=$TZ
+
+            # ===== Entrypoints =====
             TRAEFIK_WEB_PORT=$TRAEFIK_WEB_PORT
             TRAEFIK_WEBSECURE_PORT=$TRAEFIK_WEBSECURE_PORT
+
+            # ===== Certificats =====
             LETSENCRYPT_DIR=$LETSENCRYPT_DIR
+
+            # ===== Domains =====
+            TRAEFIK_HOST=$TRAEFIK_HOST
+            TINYAUTH_HOST=$TINYAUTH_HOST
+
+            # ===== TinyAuth =====
+            TINYAUTH_PORT=$TINYAUTH_PORT
+            APP_URL=https://$TINYAUTH_HOST
+            ENABLE_FORWARD_AUTH=$ENABLE_FORWARD_AUTH
+            TINYAUTH_USERS=$TINYAUTH_USERS
+
+            # ===== OAuth Google =====
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            OAUTH_WHITELISTE=$OAUTH_WHITELISTE
             EOF
+
             docker compose up -d --force-recreate
+
 
             # ===================== TASKLIST =====================
             cd /root/srv/tasklist
