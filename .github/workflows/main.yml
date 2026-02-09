@@ -112,8 +112,8 @@ jobs:
             TINYAUTH_HOST=$TINYAUTH_HOST
 
             # ===== TinyAuth =====
-            TINYAUTH_PORT=$TINYAUTH_PORT
-            APP_URL=https://$TINYAUTH_HOST
+            TINYAUTH_PORT=3000
+            APP_URL=https://${TINYAUTH_HOST}
             ENABLE_FORWARD_AUTH=$ENABLE_FORWARD_AUTH
             TINYAUTH_USERS=$TINYAUTH_USERS
 
